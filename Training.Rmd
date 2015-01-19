@@ -1,0 +1,25 @@
+---
+title: "Categorical  Outcome Training"
+author: "Hiroki Matsui"
+date: "Thursday, January 15, 2015"
+output: word_document
+---
+# この資料は演習に用いるコードを記載した資料です。
+なお、当日までに以下の準備をできるだけお願いいたします。
+- Rstudio のインストール  
+　Rstudioは非常に強力なR のIntegrated Dveropment Embiromentです。入力補助に加えてあとで触れる研究の再現性を担保するうえで非常に便利です。
+- 必要パッケージのインスト―ル  
+  当日は以下のパッケージを利用します。下記に従いインストールをお願いいたします。
+
+```{r}
+install.packages("car")
+install.packages("lme4")
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

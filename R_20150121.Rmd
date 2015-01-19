@@ -1,0 +1,63 @@
+Categorical Data Analysis
+========================================================
+author: Hiroki Matsui
+date: 2015/1/21
+
+本日お話する内容
+=======================================================
+- Categorical Outcome in Rheumatoid Arthritis (2min)
+- Categorical Outcome の解析（単変量） (5min)
+- Categorical Outcome の解析（多変量） (8min)
+- 注意事項 (10min)
+- 参考資料 (-min)
+
+
+
+
+Categorical data
+========================================================
+- アウトカムとなる変数が二値以上の離散的な値であること
+- Familiar with
+ - Death (1 = death)
+ - Readmission (1 = readmission)
+- In Rheumatoid Arthritis
+ - DAS remission (DAS28-ESR < 2.6)
+ - HAQ remission (HAQ-DI <0.5)
+ - Radiographic remission (delta TSS ≤0)
+
+
+
+Analysing categorical data (single variable)
+========================================================
+- 連続変数の場合
+ - 平均値を比較する。
+ - t-testやANOVA  等でグループ間の平均を比較することが一般的
+- カテゴリカル変数の場合
+ - 割合(population)を比較する。
+ - $\chi^2$ test 等でグループ間の割合の比較をするのが一般的
+
+Statistical testing for categorical data (single variable)
+========================================================
+- $\chi^2$ test with R
+ - chisq.test(x)
+```{r}
+ x <- matrix(c(14, 8, 4, 17), ncol=2, byrow=T)
+ print(x)
+ chisq.test(x)
+```
+ - Fisher's exact test
+  - fisher.test(x)
+```{r }
+ fisher.test(x)
+```
+  
+Analysing categorical data (single variable)  
+========================================================
+- 割合の比較
+ - リスク差
+ - リスク比
+ - オッズ比
+ 
+```{r, echo=FALSE}
+plot(cars)
+```
