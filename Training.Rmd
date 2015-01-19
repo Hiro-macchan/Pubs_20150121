@@ -4,22 +4,109 @@ author: "Hiroki Matsui"
 date: "Thursday, January 15, 2015"
 output: word_document
 ---
-# この資料は演習に用いるコードを記載した資料です。
-なお、当日までに以下の準備をできるだけお願いいたします。
-- Rstudio のインストール  
-　Rstudioは非常に強力なR のIntegrated Dveropment Embiromentです。入力補助に加えてあとで触れる研究の再現性を担保するうえで非常に便利です。
-- 必要パッケージのインスト―ル  
-  当日は以下のパッケージを利用します。下記に従いインストールをお願いいたします。
+
+
 
 ```{r}
+install.packages(c("aod","ggplot2","car"))
 install.packages("car")
-install.packages("lme4")
+library(aod)
+library(ggplot2)
+library(car)
 ```
 
-You can also embed plots, for example:
+```{r}
+train_data <- read.csv("http://www.ats.ucla.edu/stat/data/binary.csv")
+summary(train_data)
+xtabs(~admit + rank, data = train_data)
+```
+
+
+```{r}
+beta1 <- 2
+beta2 <- -2
+beta3 <- 1.5
+beta4 <- 2
+beta1_beta2 <- 1
+  n <- 100000
+  x1 <- rnorm(n,mean = 0,sd=10)
+  e2 <- rlogis(n,0,1)
+  x2 <- beta1_beta2*x1 + e2
+  x3 <- rnorm(n,mean = 0,sd=10)
+  x4 <- rnorm(n,mean = 0,sd=10)
+  e <- rlogis(n,0,1)
+  z <- beta1*x1+beta2*x2+ beta3*x3 +beta4*(x4^2) +e
+  y_pred <- 1/(1+exp(-z))
+  y <- ifelse(y_pred<0.5,0,1)
+  
+  x4_2 <- x4^2
+  res <- glm(y~x1+x2+x3+x4+x4_2, family = binomial(logit))
+  car::vif(res)
+  summary(res)
+  x4
+res_mat[i,] <- res$coefficients
+  mf_mat[i,] <- coef(res) * mean((dlogis(predict(res,type = "link"))))
+  
+  res_2 <- glm(y~x1, family = binomial(logit))
+  res_mat_2[i,] <- res_2$coefficients
+  mf_mat_2[i,] <- coef(res_2) * mean((dlogis(predict(res_2,type = "link"))))
+  
+  res_3 <- glm(y~x1+x3, family = binomial(logit))
+  res_mat_3[i,] <- res_3$coefficients
+  mf_mat_3[i,] <- coef(res_3) * mean((dlogis(predict(res_3,type = "link"))))
+
+  
+  res_4 <- glm(y~x1+x2, family = binomial(logit))
+  res_mat_4[i,] <- res_4$coefficients
+  mf_mat_4[i,] <- coef(res_4) * mean((dlogis(predict(res_4,type = "link"))))
+
+```
+
+```{r}
+library(GGally)
+ds = read.csv("http://www.math.smith.edu/r/data/help.csv")
+ds$sex = as.factor(ifelse(ds$female==1, "female", "male"))
+ds$housing = as.factor(ifelse(ds$homeless==1, "homeless", "housed"))
+smallds = subset(ds, select=c("housing", "sex", "i1", "cesd"))
+ggpairs(smallds, diag=list(continuous="density", discrete="bar"), axisLabels="show")
+```
+
+
+```{r}
+chisq.test(y = train_data$admit,x = train_data$rank)
+fisher.test(y = train_data$admit,x = train_data$rank)
+```
+
+```{r}
+train_data$rank <- factor(train_data$rank)
+mylogit <- glm(admit ~ gre + gpa + rank, data = train_data, family = "binomial")
+summary(mylogit)
+```
+
+```{r}
+exp(mylogit$coefficients)
+p <- coef(summary(mylogit))[,4]
+exp(confint(mylogit))
+odds <- exp(cbind(OR = exp(mylogit$coefficients),confint(mylogit)))
+odds <- cbind(odds, p)
+
+```
+
+
+```{r}
+library(car)
+library(ggplot2)
+library(GGally)
+ggplot2::plotmatrix(data=mtcars)
+GGally::ggpairs(data=mtcars)
+```
+
 
 ```{r, echo=FALSE}
 plot(cars)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### Refernce
+http://www.ats.ucla.edu/stat/dae/
