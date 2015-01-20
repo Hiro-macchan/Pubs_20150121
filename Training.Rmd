@@ -2,19 +2,47 @@
 title: "Categorical  Outcome Training"
 author: "Hiroki Matsui"
 date: "Thursday, January 15, 2015"
-output: word_document
+output: html_document
 ---
 
+## はじめに
+この資料は、カテゴリカルアウトカムを解析するうえで医療系で多用されるLogistic Model の使用方法についてRを用いて解説した資料です。  
+灰色の枠で囲われた部分がRのコードになっており、Rのコンソールにコピペすることで実行できます。  
+
+## パッケージのインストール
+今回使用するパッケージは以下の5つです。
+
+```{r}
+install.packages(c("ggplot2","car","GGally","epicalc","pROC"))
+```
+  
+- <a href="http://cran.r-project.org/web/packages/ggplot2/index.html">ggplot2</a>
+  極めてメジャーなグラフ描画パッケージ。
+  
+- <a href = "http://cran.r-project.org/web/packages/car/index.html">car</a>
+  "Companion to Applied Regression” という本の内容をパッケージにしたもの。
+  
+- <a href = "http://cran.r-project.org/web/packages/GGally/index.html">GGally</a>
+  ggplot2 の拡張
+  
+- <a href = "http://cran.r-project.org/web/packages/epicalc/index.html">epicalc</a>
+  疫学系の計算パッケージ
+  
+- <a href = "http://cran.r-project.org/web/packages/pROC/index.html">pROC</a>
+  ROC曲線の描画・解析パッケージ
 
 
 ```{r}
-install.packages(c("aod","ggplot2","car","GGally","epicalc"))
+
 library(aod)
 library(ggplot2)
 library(car)
 library(GGally)
 library(dplyr)
 library(epicalc)
+library(Epi)
+library(pROC)
+
 ```
 
 
@@ -94,6 +122,7 @@ write.csv(train_data,"train_data.csv")
 train_data <- train_data_stock
 train_data$y<- as.factor(train_data$y)
 train_data$rank<- as.factor(train_data$rank)
+train_data$sex <- as.factor(train_data$sex)
 summary(train_data)
 head(train_data)
 ggpairs(train_data)
@@ -140,6 +169,65 @@ logistic.display(model_4)
 # 交互作用の解釈
 
 
+
+```
+
+
+```{r}
+train_data <- train_data_stock
+train_data$y<- as.factor(train_data$y)
+train_data$rank<- as.factor(train_data$rank)
+train_data$sex <- as.factor(train_data$sex)
+summary(train_data)
+head(train_data)
+
+#train_data
+train_data_num <- sample(1:nrow(train_data),size = nrow(train_data)*0.08)
+train_data <- train_data[train_data_num,]
+
+
+model_4 <- glm(y ~ gre+ gre_math + gpa + rank + log(household) + sex + sex:gre + sex:log(household) + rank:gre +rank:log(household), data = train_data, family = binomial(logit))
+pred <- predict(model_4,type = "response",newdata = train_data)
+hist(pred)
+roc_1 <- pROC::roc(response =  as.numeric(train_data$y)-1,predictor =  pred)
+pROC::auc(roc_1)
+pROC::ci(roc_1)
+pROC::coords(roc_1,"best", ret=c("threshold", "specificity", "sensitivity","accuracy","tn", "tp", "fn", "fp", "npv", "ppv", "1-specificity","1-sensitivity", "1-accuracy", "1-npv", "1-ppv"))
+
+
+model_5 <- glm(y ~ poly(gre,degree = 15)+ gre_math + gpa + rank + poly(log(household),15) + sex + sex:gre + sex:log(household) + rank:gre +rank:log(household) , data = train_data, family = binomial(logit))
+pred <- predict(model_5,type = "response",newdata = train_data)
+hist(pred)
+roc_2 <- pROC::roc(response =  as.numeric(train_data$y)-1,predictor =  pred)
+pROC::auc(roc_2)
+pROC::ci(roc_2)
+pROC::coords(roc_2,"best", ret=c("threshold", "specificity", "sensitivity", "accuracy","tn", "tp", "fn", "fp", "npv", "ppv", "1-specificity",
+"1-sensitivity", "1-accuracy", "1-npv", "1-ppv"))
+
+plot(roc_1,col="blue")
+plot(roc_2,col="red",add=T)
+
+
+model_data_num <- sample(1:nrow(train_data),size = nrow(train_data)*0.6)
+model_data <- train_data[model_data_num,]
+test_data <- train_data[-model_data_num,]
+
+
+
+model_6 <- glm(y ~ poly(gre,degree = 15)+ gre_math + gpa + rank + poly(log(household),15) + sex + sex:gre + sex:log(household) + rank:gre +rank:log(household), data = model_data, family = binomial(logit))
+
+pred <- predict(model_6,type = "response",newdata = test_data)
+hist(pred)
+roc_3 <- pROC::roc(response =  as.numeric(test_data$y)-1,predictor =  pred)
+pROC::auc(roc_3)
+pROC::ci(roc_3)
+pROC::coords(roc_3,"best", ret=c("threshold", "specificity", "sensitivity", "accuracy","tn", "tp", "fn", "fp", "npv", "ppv", "1-specificity",
+"1-sensitivity", "1-accuracy", "1-npv", "1-ppv"))
+
+
+plot(roc_1,col="blue",lty=3)
+plot(roc_2,col="blue", add=T)
+plot(roc_3,col="red", add=T)
 
 ```
 
