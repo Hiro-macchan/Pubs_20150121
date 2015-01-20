@@ -8,105 +8,141 @@ output: word_document
 
 
 ```{r}
-install.packages(c("aod","ggplot2","car"))
-install.packages("car")
+install.packages(c("aod","ggplot2","car","GGally","epicalc"))
 library(aod)
 library(ggplot2)
 library(car)
+library(GGally)
+library(dplyr)
+library(epicalc)
 ```
 
+
+
 ```{r}
-train_data <- read.csv("http://www.ats.ucla.edu/stat/data/binary.csv")
+# 元データの読み込み
+sample_data <- read.csv("http://www.ats.ucla.edu/stat/data/binary.csv")
+#n <- nrow(train_data)
+summary(sample_data)
+n <- 10000
+gpa <- rnorm(n,mean(sample_data$gpa),sd(sample_data$gpa))
+gpa <- ifelse(gpa>4,4,gpa)
+gpa <- ifelse(gpa<0,0,gpa)
+summary(gpa)
+
+hist(sample_data$rank)
+rank <- rnorm(n, mean(as.numeric(sample_data$rank))-0.5, sd(as.numeric(sample_data$rank)))
+summary(rank)
+rank <- cut(rank,breaks = c(min(rank),1,2,3,max(rank)),include.lowest = T,right = T)
+rank <- as.numeric(rank)
+hist(rank)
+rank <- as.factor(rank)
+
+hist(sample_data$gre)
+gre <- rnorm(n, mean(as.numeric(sample_data$gre)), sd(as.numeric(sample_data$gre)))
+gre <- ifelse(gre>800,800,gre)
+gre <- ifelse(gre<0,0,gre)
+hist(gre)
+
+train_data <- data.frame(gre = gre, gpa = gpa, rank = rank)
+
+
+#追加情報を作成
+train_data$gre_math <- 0.3 * train_data$gre + rnorm(length(train_data$gre),0,10)
+train_data$household <- rlnorm(n,meanlog=5,sdlog=0.4)
+hist(train_data$household)
+hist(log(train_data$household))
+train_data$sex <- ifelse(runif(n = n,0,1)<=0.5,1,0)
+#data 特性
+#summary(train_data)
+#ggpairs(train_data)
+
+# 元のデータの関係をそのままに新しいOutcome Yを作る。
+# sampleから係数を算出
+sample_data$rank <- factor(sample_data$rank)
+samplelogit <- glm(admit ~ gre + gpa + rank, data = sample_data, family = "binomial")
+coef_vec <- samplelogit$coefficients
+
+# 係数に基づきYを規定
+rank_mat <- model.matrix(~1+ rank,data=train_data)[,-1]
+model_df <- cbind(train_data[,colnames(train_data) != "rank"],rank_mat)
+model_df$sex_gre <- model_df$sex*model_df$gre
+model_df$sex_household <- log(model_df$household)*model_df$gre
+head(model_df)
+#再設定
+summary(model_df)
+e <- rlogis(n,0,1)
+z <- with(data = model_df,coef_vec[2]*gre + coef_vec[3]*gpa + coef_vec[4]*rank2 + coef_vec[5]*rank3 + coef_vec[6]*rank4
+                          -0.35*log(household)+ 0.002*sex_gre +(-2.53) * sex + e)
+y_pred <- 1/(1+exp(-z))
+hist(y_pred)
+
+train_data$y <- ifelse(y_pred<0.5,1,0)
 summary(train_data)
-xtabs(~admit + rank, data = train_data)
-```
+hist(train_data$y)
+#head(train_data)
+train_data_stock <- train_data
+write.csv(train_data,"train_data.csv")
 
 
-```{r}
-beta1 <- 2
-beta2 <- -2
-beta3 <- 1.5
-beta4 <- 2
-beta1_beta2 <- 1
-  n <- 100000
-  x1 <- rnorm(n,mean = 0,sd=10)
-  e2 <- rlogis(n,0,1)
-  x2 <- beta1_beta2*x1 + e2
-  x3 <- rnorm(n,mean = 0,sd=10)
-  x4 <- rnorm(n,mean = 0,sd=10)
-  e <- rlogis(n,0,1)
-  z <- beta1*x1+beta2*x2+ beta3*x3 +beta4*(x4^2) +e
-  y_pred <- 1/(1+exp(-z))
-  y <- ifelse(y_pred<0.5,0,1)
-  
-  x4_2 <- x4^2
-  res <- glm(y~x1+x2+x3+x4+x4_2, family = binomial(logit))
-  car::vif(res)
-  summary(res)
-  x4
-res_mat[i,] <- res$coefficients
-  mf_mat[i,] <- coef(res) * mean((dlogis(predict(res,type = "link"))))
-  
-  res_2 <- glm(y~x1, family = binomial(logit))
-  res_mat_2[i,] <- res_2$coefficients
-  mf_mat_2[i,] <- coef(res_2) * mean((dlogis(predict(res_2,type = "link"))))
-  
-  res_3 <- glm(y~x1+x3, family = binomial(logit))
-  res_mat_3[i,] <- res_3$coefficients
-  mf_mat_3[i,] <- coef(res_3) * mean((dlogis(predict(res_3,type = "link"))))
-
-  
-  res_4 <- glm(y~x1+x2, family = binomial(logit))
-  res_mat_4[i,] <- res_4$coefficients
-  mf_mat_4[i,] <- coef(res_4) * mean((dlogis(predict(res_4,type = "link"))))
-
-```
-
-```{r}
-library(GGally)
-ds = read.csv("http://www.math.smith.edu/r/data/help.csv")
-ds$sex = as.factor(ifelse(ds$female==1, "female", "male"))
-ds$housing = as.factor(ifelse(ds$homeless==1, "homeless", "housed"))
-smallds = subset(ds, select=c("housing", "sex", "i1", "cesd"))
-ggpairs(smallds, diag=list(continuous="density", discrete="bar"), axisLabels="show")
-```
-
-
-```{r}
-chisq.test(y = train_data$admit,x = train_data$rank)
-fisher.test(y = train_data$admit,x = train_data$rank)
-```
-
-```{r}
-train_data$rank <- factor(train_data$rank)
-mylogit <- glm(admit ~ gre + gpa + rank, data = train_data, family = "binomial")
-summary(mylogit)
-```
-
-```{r}
-exp(mylogit$coefficients)
-p <- coef(summary(mylogit))[,4]
-exp(confint(mylogit))
-odds <- exp(cbind(OR = exp(mylogit$coefficients),confint(mylogit)))
-odds <- cbind(odds, p)
 
 ```
 
 
 ```{r}
-library(car)
-library(ggplot2)
-library(GGally)
-ggplot2::plotmatrix(data=mtcars)
-GGally::ggpairs(data=mtcars)
+# Training data の特性をチェック
+train_data <- train_data_stock
+train_data$y<- as.factor(train_data$y)
+train_data$rank<- as.factor(train_data$rank)
+summary(train_data)
+head(train_data)
+ggpairs(train_data)
+
+# イベントごとに因子を確認
+filter(train_data, y==1) %>% summary
+filter(train_data, y==0) %>% summary
+
+# model構築
+# モデル全体の尤度比検定
+model <- glm(y ~ 1, data = train_data, family = binomial(logit))
+model_0 <- glm(y ~ ., data = train_data, family = binomial(logit))
+anova(model,model_0,test= "Chisq")
+# 変数の有意差とオッズ比
+logistic.display(model_0)
+# マルチコチェック
+car::vif(model_0)
+model_1 <- glm(y ~ gre + gpa + rank + household + sex , data = train_data, family = binomial(logit))
+logistic.display(model_1)
+anova(model_0,model_1,test= "Chisq")
+
+# 線形性の確認
+household_10 <- with(train_data,cut(household,breaks=quantile(x = household,probs = seq(0,1,0.05)),include.lowest = T))
+y <- train_data$y
+household_10 <- as.numeric(household_10)
+p <- apply(table(household_10,y),1,function(x){x[2]/(x[1]+x[2])})
+x_3 <- max(household_10)*seq(0,1,0.05)[-1]
+plot(x_3,p, main = "x_1 vs Proportion", xlab = "x_1", ylab = "Propotion")
+plot(function(x){-log(x)},0,2)
+
+model_2 <- glm(y ~ gre + gpa + rank + log(household) + sex , data = train_data, family = binomial(logit))
+logistic.display(model_2)
+
+# 交互作用項の検討
+model_3 <- glm(y ~ gre + gpa + rank + log(household) + sex + sex:household, data = train_data, family = binomial(logit))
+anova(model_2,model_3,test="Chisq")
+logistic.display(model_3)
+
+
+model_4 <- glm(y ~ gre + gpa + rank + log(household) + sex + sex:gre, data = train_data, family = binomial(logit))
+anova(model_2,model_4,test="Chisq")
+logistic.display(model_4)
+
+# 交互作用の解釈
+
+
+
 ```
 
-
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ### Refernce
 http://www.ats.ucla.edu/stat/dae/
