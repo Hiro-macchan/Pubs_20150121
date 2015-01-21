@@ -2,119 +2,141 @@
 title: "Categorical  Outcome Training"
 author: "Hiroki Matsui"
 date: "Thursday, January 15, 2015"
-output: word_document
+output: html_document
 ---
 
+## はじめに
+この資料は、カテゴリカルアウトカムを解析するうえで医療系で多用されるLogistic Model の使用方法についてRを用いて解説した資料です。  
+灰色の枠で囲われた部分がRのコードになっており、Rのコンソールにコピペすることで実行できます。  
+
+## パッケージのインストール
+今回使用するパッケージは以下の5つです。
+
+```{r eval=FALSE}
+install.packages(c("ggplot2","car","GGally","epicalc","pROC"))
+```
+  
+- <a href="http://cran.r-project.org/web/packages/ggplot2/index.html">ggplot2</a>
+  極めてメジャーなグラフ描画パッケージ。
+  
+- <a href = "http://cran.r-project.org/web/packages/car/index.html">car</a>
+  "Companion to Applied Regression” という本の内容をパッケージにしたもの。
+  
+- <a href = "http://cran.r-project.org/web/packages/GGally/index.html">GGally</a>
+  ggplot2 の拡張
+  
+- <a href = "http://cran.r-project.org/web/packages/epicalc/index.html">epicalc</a>
+  疫学系の計算パッケージ
+  
+- <a href = "http://cran.r-project.org/web/packages/pROC/index.html">pROC</a>
+  ROC曲線の描画・解析パッケージ
 
 
-```{r}
-install.packages(c("aod","ggplot2","car","GGally","epicalc"))
-library(aod)
+## ライブラリの読み込み
+まずは、ライブラリを読み込みます。
+```{r results='hide',message=FALSE}
 library(ggplot2)
 library(car)
 library(GGally)
 library(dplyr)
 library(epicalc)
+library(pROC)
+
 ```
 
 
+## データの用意
+Web 上に仮想データを用意しました。
+下記からダウンロードできます。参考資料[1]のサイトを参考に講演者が独自生成しました。
 
-```{r}
+- gre 
+  テスト成績（800点満点）
+- gpa 
+  成績（1-4の連続数）
+- rank 
+  最終的な成績ランク（1-4グレード）
+- gre_math 
+  数学テストの成績（greの一部）
+- household 
+  家庭の年収
+- sex
+  性別（1=female）
+- y 
+  大学合格（1=合格）
+
+
+```{r eval=FALSE}
 # 元データの読み込み
-sample_data <- read.csv("http://www.ats.ucla.edu/stat/data/binary.csv")
-#n <- nrow(train_data)
-summary(sample_data)
-n <- 10000
-gpa <- rnorm(n,mean(sample_data$gpa),sd(sample_data$gpa))
-gpa <- ifelse(gpa>4,4,gpa)
-gpa <- ifelse(gpa<0,0,gpa)
-summary(gpa)
-
-hist(sample_data$rank)
-rank <- rnorm(n, mean(as.numeric(sample_data$rank))-0.5, sd(as.numeric(sample_data$rank)))
-summary(rank)
-rank <- cut(rank,breaks = c(min(rank),1,2,3,max(rank)),include.lowest = T,right = T)
-rank <- as.numeric(rank)
-hist(rank)
-rank <- as.factor(rank)
-
-hist(sample_data$gre)
-gre <- rnorm(n, mean(as.numeric(sample_data$gre)), sd(as.numeric(sample_data$gre)))
-gre <- ifelse(gre>800,800,gre)
-gre <- ifelse(gre<0,0,gre)
-hist(gre)
-
-train_data <- data.frame(gre = gre, gpa = gpa, rank = rank)
-
-
-#追加情報を作成
-train_data$gre_math <- 0.3 * train_data$gre + rnorm(length(train_data$gre),0,10)
-train_data$household <- rlnorm(n,meanlog=5,sdlog=0.4)
-hist(train_data$household)
-hist(log(train_data$household))
-train_data$sex <- ifelse(runif(n = n,0,1)<=0.5,1,0)
-#data 特性
-#summary(train_data)
-#ggpairs(train_data)
-
-# 元のデータの関係をそのままに新しいOutcome Yを作る。
-# sampleから係数を算出
-sample_data$rank <- factor(sample_data$rank)
-samplelogit <- glm(admit ~ gre + gpa + rank, data = sample_data, family = "binomial")
-coef_vec <- samplelogit$coefficients
-
-# 係数に基づきYを規定
-rank_mat <- model.matrix(~1+ rank,data=train_data)[,-1]
-model_df <- cbind(train_data[,colnames(train_data) != "rank"],rank_mat)
-model_df$sex_gre <- model_df$sex*model_df$gre
-model_df$sex_household <- log(model_df$household)*model_df$gre
-head(model_df)
-#再設定
-summary(model_df)
-e <- rlogis(n,0,1)
-z <- with(data = model_df,coef_vec[2]*gre + coef_vec[3]*gpa + coef_vec[4]*rank2 + coef_vec[5]*rank3 + coef_vec[6]*rank4
-                          -0.35*log(household)+ 0.002*sex_gre +(-2.53) * sex + e)
-y_pred <- 1/(1+exp(-z))
-hist(y_pred)
-
-train_data$y <- ifelse(y_pred<0.5,1,0)
-summary(train_data)
-hist(train_data$y)
-#head(train_data)
-train_data_stock <- train_data
-write.csv(train_data,"train_data.csv")
-
-
-
+train_data<- read.csv("https://raw.githubusercontent.com/Hiro-macchan/Pubs_20150121/master/train_data.csv")
+```
+```{r echo=FALSE}
+train_data <- read.csv("train_data.csv")
 ```
 
+
+# 因果推論 
+## データの特性を確認
+データの中身を確認します。
 
 ```{r}
 # Training data の特性をチェック
-train_data <- train_data_stock
+summary(train_data)
+# カテゴリカルな変数を因子に変換
 train_data$y<- as.factor(train_data$y)
 train_data$rank<- as.factor(train_data$rank)
-summary(train_data)
+train_data$sex <- as.factor(train_data$sex)
+# データのはじめ10行を見る。
 head(train_data)
-ggpairs(train_data)
+```{r}
 
+```{r message=FALSE}
+# 変数間の関係を見る。
+GGally::ggpairs(train_data)
+```
+
+- 因子の中で世帯所得が対数正規分布している様子がうかがえます。
+- 因子間の関連を見ると、gre とgre_mathが相関している様子が見えます。
+
+## 因子ごとにイベントの出現頻度を確認
+```{r}
 # イベントごとに因子を確認
 filter(train_data, y==1) %>% summary
 filter(train_data, y==0) %>% summary
+```
+  イベントを0 に絞っても因子が大まかに出現していたので、イベントの明らかな偏りはない。
 
+## モデルの構築
+まず、何も考えずモデルを組んで見たうえで、すべての$\beta=0$という仮説を検証
+```{r}
 # model構築
 # モデル全体の尤度比検定
 model <- glm(y ~ 1, data = train_data, family = binomial(logit))
 model_0 <- glm(y ~ ., data = train_data, family = binomial(logit))
 anova(model,model_0,test= "Chisq")
+```
+  少なくとも、すべての変数を強制投入したモデルはすべての変数を投入しなかった場合に比べ、データの関係性をよくあらわしている。
+
+## 多重共線性のチェック
+gre は有意だがgre_mathは有意ではない。
+greとgre_math の間に関連が強く多重共線性を起こしている?
+```{r}
 # 変数の有意差とオッズ比
 logistic.display(model_0)
 # マルチコチェック
 car::vif(model_0)
+```
+VIF から多重共線性が疑われたため、gre_mathをモデルから取り除く。
+
+```{r}
 model_1 <- glm(y ~ gre + gpa + rank + household + sex , data = train_data, family = binomial(logit))
 logistic.display(model_1)
 anova(model_0,model_1,test= "Chisq")
+```
+gre_math を入れたモデルと比してもデータのあらわし具合は変わらない。
 
+## 変数の線形性を確認
+世帯所得は明らかな対数正規分布をしており、年収200万円の家庭と年収1000万円の仮定では合格率に対する効果は異なることが予想される。
+```{r}
 # 線形性の確認
 household_10 <- with(train_data,cut(household,breaks=quantile(x = household,probs = seq(0,1,0.05)),include.lowest = T))
 y <- train_data$y
@@ -123,10 +145,19 @@ p <- apply(table(household_10,y),1,function(x){x[2]/(x[1]+x[2])})
 x_3 <- max(household_10)*seq(0,1,0.05)[-1]
 plot(x_3,p, main = "x_1 vs Proportion", xlab = "x_1", ylab = "Propotion")
 plot(function(x){-log(x)},0,2)
+```
+  わかりにくいが負の対数関係が見て取れる。
 
+```{r}
 model_2 <- glm(y ~ gre + gpa + rank + log(household) + sex , data = train_data, family = binomial(logit))
 logistic.display(model_2)
+```
+変数の変換を実施。カテゴリー化してもよい。
 
+## 交互作用項の検討
+変数間の関連で効果がModifyされていないか確認する。
+具体的には交互作用項をモデルに投入し、投入前と比較する。
+```{r}
 # 交互作用項の検討
 model_3 <- glm(y ~ gre + gpa + rank + log(household) + sex + sex:household, data = train_data, family = binomial(logit))
 anova(model_2,model_3,test="Chisq")
@@ -136,13 +167,97 @@ logistic.display(model_3)
 model_4 <- glm(y ~ gre + gpa + rank + log(household) + sex + sex:gre, data = train_data, family = binomial(logit))
 anova(model_2,model_4,test="Chisq")
 logistic.display(model_4)
+```
+sex:gre の交互作用項が有意であった。よって性別によってgreの合格に対する効果は異なる。
 
-# 交互作用の解釈
 
+#予測モデルの構築
+データから合格の可否を予測するモデルを作成する。
 
+## データの準備
+説明のため、データをサンプリングする。
+```{r}
+train_data$y<- as.factor(train_data$y)
+train_data$rank<- as.factor(train_data$rank)
+train_data$sex <- as.factor(train_data$sex)
+train_data_num <- sample(1:nrow(train_data),size = nrow(train_data)*0.08)
+train_data <- train_data[train_data_num,]
+summary(train_data)
+head(train_data)
+```
 
+## model 構築と予測力の評価
+モデルの構築は上記と同じ。 
+予測力の評価はROC曲線のAUCを用いる。
+
+```{r}
+#モデル作成
+model_4 <- glm(y ~ gre+ gre_math + gpa + rank + log(household) + sex + sex:gre + sex:log(household) + rank:gre +rank:log(household), data = train_data, family = binomial(logit))
+#モデルをデータに当てはめ、予測値（合格割合）を得る。
+pred <- predict(model_4,type = "response",newdata = train_data)
+hist(pred)
+#ROCを作成し格納する。
+roc_1 <- pROC::roc(response =  as.numeric(train_data$y)-1,predictor =  pred)
+#AUCとAUCの信頼区間、他の予測指標の算出
+pROC::auc(roc_1)
+pROC::ci(roc_1)
+pROC::coords(roc_1,"best", ret=c("threshold", "specificity", "sensitivity","accuracy","tn", "tp", "fn", "fp", "npv", "ppv", "1-specificity","1-sensitivity", "1-accuracy", "1-npv", "1-ppv"))
+```
+
+## model に多項式を入れる。
+ploy(x,degree=n)はx のn次多項式を生成する。つまり、poly(gre,degree = 15)で
+$$
+x+x^2+x^3+\cdots + x^15
+$$
+を表現している。
+```{r}
+model_5 <- glm(y ~ poly(gre,degree = 15)+ gre_math + gpa + rank + poly(log(household),15) + sex + sex:gre + sex:log(household) + rank:gre +rank:log(household) , data = train_data, family = binomial(logit))
+pred <- predict(model_5,type = "response",newdata = train_data)
+hist(pred)
+roc_2 <- pROC::roc(response =  as.numeric(train_data$y)-1,predictor =  pred)
+pROC::auc(roc_2)
+pROC::ci(roc_2)
+pROC::coords(roc_2,"best", ret=c("threshold", "specificity", "sensitivity", "accuracy","tn", "tp", "fn", "fp", "npv", "ppv", "1-specificity",
+"1-sensitivity", "1-accuracy", "1-npv", "1-ppv"))
+
+plot(roc_1,col="blue")
+plot(roc_2,col="red",add=T)
+```
+モデルの予測力を上げるために多項式を入れる手法はよく用いられる。
+しかし、これには過剰適合のリスクがついて回る。
+
+## 過剰適合の検証 
+モデル作成とモデル検証にデータを分ける。
+
+```{r}
+model_data_num <- sample(1:nrow(train_data),size = nrow(train_data)*0.6)
+model_data <- train_data[model_data_num,]
+test_data <- train_data[-model_data_num,]
+```
+
+多項式モデルを構築する。
+```{r}
+model_6 <- glm(y ~ poly(gre,degree = 15)+ gre_math + gpa + rank + poly(log(household),15) + sex + sex:gre + sex:log(household) + rank:gre +rank:log(household), data = model_data, family = binomial(logit))
+
+pred <- predict(model_6,type = "response",newdata = test_data)
+hist(pred)
+roc_3 <- pROC::roc(response =  as.numeric(test_data$y)-1,predictor =  pred)
+pROC::auc(roc_3)
+pROC::ci(roc_3)
+pROC::coords(roc_3,"best", ret=c("threshold", "specificity", "sensitivity", "accuracy","tn", "tp", "fn", "fp", "npv", "ppv", "1-specificity",
+"1-sensitivity", "1-accuracy", "1-npv", "1-ppv"))
 ```
 
 
+ROCを比較する。
+```{r}
+plot(roc_1,col="blue",lty=3)
+plot(roc_2,col="blue", add=T)
+plot(roc_3,col="red", add=T)
+
+```
+多項式を入れたモデルは他のデータに対する汎用性がない。
+これは、内的妥当性に問題があることを示しているし、外部データを用いて外的妥当性を検証しても同様の問題が生じる。
+
 ### Refernce
-http://www.ats.ucla.edu/stat/dae/
+[1]http://www.ats.ucla.edu/stat/dae/

@@ -236,18 +236,18 @@ lm(formula = y ~ x_1)
 
 Residuals:
      Min       1Q   Median       3Q      Max 
--0.73287 -0.18161  0.00538  0.17285  0.65472 
+-0.65292 -0.18391  0.00459  0.18782  0.64625 
 
 Coefficients:
             Estimate Std. Error t value Pr(>|t|)    
-(Intercept) 0.516625   0.008120   63.62   <2e-16 ***
-x_1         0.073803   0.001398   52.79   <2e-16 ***
+(Intercept) 0.508401   0.008272   61.46   <2e-16 ***
+x_1         0.074137   0.001438   51.56   <2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 0.2568 on 998 degrees of freedom
-Multiple R-squared:  0.7363,	Adjusted R-squared:  0.736 
-F-statistic:  2787 on 1 and 998 DF,  p-value: < 2.2e-16
+Residual standard error: 0.2615 on 998 degrees of freedom
+Multiple R-squared:  0.7271,	Adjusted R-squared:  0.7268 
+F-statistic:  2659 on 1 and 998 DF,  p-value: < 2.2e-16
 ```
 
 普通の多変量回帰が困難な理由
@@ -534,7 +534,8 @@ Validation(妥当性の検証)
 
 Statistical significance(統計学的有意性)
 =====================================
-
+- モデル全体の有意性($H_0:すべての\beta=0$)
+- 各係数の有意性
 
 
 
