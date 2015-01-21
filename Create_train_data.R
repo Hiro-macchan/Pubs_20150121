@@ -59,4 +59,4 @@ summary(train_data)
 hist(train_data$y)
 #head(train_data)
 train_data_stock <- train_data
-write.csv(train_data,"train_data.csv")
+write.csv(train_data,"train_data.csv",row.names=F)
