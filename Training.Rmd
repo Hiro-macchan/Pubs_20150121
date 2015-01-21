@@ -44,6 +44,20 @@ library(pROC)
 
 ```
 
+## 演習に入る前に
+- 皆さん、解析ノートをつけましょう。
+- もしくは、自分の解析ログを適切に保管しましょう。
+ - データ
+ - 解析コード
+ - 解析結果
+- 上記三つが１セットとなってフォルダ内に保存されるようにしましょう。
+
+## RStudio のご紹介
+- Rstudio はR をより使いやすくするための統合開発環境です。
+- http://www.rstudio.com/
+- データ→解析→アウトプット過程をすべて保存する機能を有します。
+- 今回のプレゼンなどは全てRstudio 上で作成しています。
+
 
 ## データの用意
 Web 上に仮想データを用意しました。
@@ -62,14 +76,16 @@ Web 上に仮想データを用意しました。
 - sex
   性別（1=female）
 - y 
-  大学合格（1=合格）
+  大学合格（1=不合格）
 
 
 ```{r eval=FALSE}
 # 元データの読み込み
 train_data<- read.csv("https://raw.githubusercontent.com/Hiro-macchan/Pubs_20150121/master/train_data.csv")
 ```
-```{r echo=FALSE}
+
+もしも、ネットワークがうまくつながらない場合は以下のコードをお試し下さい。
+```{r}
 train_data <- read.csv("train_data.csv")
 ```
 
@@ -144,9 +160,9 @@ household_10 <- as.numeric(household_10)
 p <- apply(table(household_10,y),1,function(x){x[2]/(x[1]+x[2])})
 x_3 <- max(household_10)*seq(0,1,0.05)[-1]
 plot(x_3,p, main = "x_1 vs Proportion", xlab = "x_1", ylab = "Propotion")
-plot(function(x){-log(x)},0,2)
+plot(function(x){log(x)},0,2)
 ```
-  わかりにくいが負の対数関係が見て取れる。
+  わかりにくいが正の対数関係が見て取れる。
 
 ```{r}
 model_2 <- glm(y ~ gre + gpa + rank + log(household) + sex , data = train_data, family = binomial(logit))
@@ -168,7 +184,7 @@ model_4 <- glm(y ~ gre + gpa + rank + log(household) + sex + sex:gre, data = tra
 anova(model_2,model_4,test="Chisq")
 logistic.display(model_4)
 ```
-sex:gre の交互作用項が有意であった。よって性別によってgreの合格に対する効果は異なる。
+sex:gre の交互作用項が有意であった。よって性別によってgreの不合格に対する効果は異なる。
 
 
 #予測モデルの構築
