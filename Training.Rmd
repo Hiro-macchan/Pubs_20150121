@@ -95,12 +95,13 @@ train_data <- read.csv("train_data.csv")
 データの中身を確認します。
 
 ```{r}
-# Training data の特性をチェック
-summary(train_data)
 # カテゴリカルな変数を因子に変換
 train_data$y<- as.factor(train_data$y)
 train_data$rank<- as.factor(train_data$rank)
 train_data$sex <- as.factor(train_data$sex)
+# Training data の特性をチェック
+summary(train_data)
+
 # データのはじめ10行を見る。
 head(train_data)
 ```{r}
@@ -196,7 +197,7 @@ sex:gre の交互作用項が有意であった。よって性別によってgre
 train_data$y<- as.factor(train_data$y)
 train_data$rank<- as.factor(train_data$rank)
 train_data$sex <- as.factor(train_data$sex)
-train_data_num <- sample(1:nrow(train_data),size = nrow(train_data)*0.08)
+train_data_num <- sample(1:nrow(train_data),size = nrow(train_data)*0.1)
 train_data <- train_data[train_data_num,]
 summary(train_data)
 head(train_data)
@@ -223,7 +224,7 @@ pROC::coords(roc_1,"best", ret=c("threshold", "specificity", "sensitivity","accu
 ## model に多項式を入れる。
 ploy(x,degree=n)はx のn次多項式を生成する。つまり、poly(gre,degree = 15)で
 $$
-x+x^2+x^3+\cdots + x^15
+x+x^2+x^3+\cdots + x^{15}
 $$
 を表現している。
 ```{r}

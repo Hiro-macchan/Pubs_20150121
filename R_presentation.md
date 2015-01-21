@@ -249,18 +249,18 @@ lm(formula = y ~ x_1)
 
 Residuals:
      Min       1Q   Median       3Q      Max 
--0.69880 -0.18326 -0.00978  0.17595  0.66437 
+-0.65470 -0.17852 -0.01393  0.16550  0.74639 
 
 Coefficients:
             Estimate Std. Error t value Pr(>|t|)    
-(Intercept) 0.489092   0.008272   59.13   <2e-16 ***
-x_1         0.073436   0.001425   51.52   <2e-16 ***
+(Intercept) 0.497231   0.008032   61.90   <2e-16 ***
+x_1         0.073363   0.001368   53.63   <2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Residual standard error: 0.2616 on 998 degrees of freedom
-Multiple R-squared:  0.7267,	Adjusted R-squared:  0.7264 
-F-statistic:  2654 on 1 and 998 DF,  p-value: < 2.2e-16
+Residual standard error: 0.254 on 998 degrees of freedom
+Multiple R-squared:  0.7424,	Adjusted R-squared:  0.7422 
+F-statistic:  2876 on 1 and 998 DF,  p-value: < 2.2e-16
 ```
 
 普通の多変量回帰が困難な理由
@@ -622,7 +622,14 @@ Fitting procedure(モデル構築)
 - x1,x2 のうちx1 はTreatment と関連しており、x2はTreatment に対して独立している。  
 - outcomeとtreatmentの関連を推計したいときに調整すべき変数は何か？  
 
-
+まとめ
+===========================================
+- Logistic regression はカテゴリカルアウトカムを取り扱う際に多用される手法
+- アウトカムの割合を予測している、
+- eの係数乗がOdds Ratio になる。
+- 使い道は因果推論と予測モデルの構築
+- 使うだけならそこまで難しくはない
+- 適切な使用をする上でいくつか注意点がある。
 
 参考資料
 ==============================================
